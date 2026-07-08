@@ -3,6 +3,8 @@
 use std::fmt;
 use std::fmt::Write as _;
 
+use crate::cost::Cost;
+
 /// Glyph for an open, walkable cell.
 const OPEN: char = '.';
 /// Glyph for a wall cell.
@@ -11,6 +13,11 @@ const WALL: char = '#';
 const START: char = 'S';
 /// Glyph marking the goal position.
 const GOAL: char = 'G';
+
+/// The cost of one orthogonal (N/S/E/W) step.
+const ORTHOGONAL_STEP: f64 = 1.0;
+/// The cost of one diagonal step.
+const DIAGONAL_STEP: f64 = std::f64::consts::SQRT_2;
 
 /// A cell coordinate: `x` is the column (left to right), `y` the row (top to
 /// bottom), both zero-based.
@@ -192,6 +199,20 @@ impl Grid {
             .filter_map(|&(dx, dy)| self.offset(pos, dx, dy))
             .filter(|&next| self.is_open(next))
             .collect()
+    }
+
+    /// The movement cost of one step from `from` to an adjacent `next`.
+    ///
+    /// Diagonal steps (differing on both axes) cost `sqrt(2)`; orthogonal steps
+    /// cost `1`. Takes `&self` so weighted terrain can factor in later.
+    #[must_use]
+    pub fn step_cost(&self, from: Pos, next: Pos) -> Cost {
+        let diagonal = from.x != next.x && from.y != next.y;
+        Cost::new(if diagonal {
+            DIAGONAL_STEP
+        } else {
+            ORTHOGONAL_STEP
+        })
     }
 
     /// Apply signed offset `(dx, dy)` to `pos`, returning the target if it
@@ -480,6 +501,21 @@ mod tests {
         let got = grid.neighbors(Pos::new(0, 0), Connectivity::Eight);
         // Diagonal reachable even though both flanking orthogonals are walls.
         assert_eq!(got, vec![Pos::new(1, 1)]);
+    }
+
+    #[test]
+    fn step_cost_distinguishes_orthogonal_and_diagonal() {
+        let grid = parse_ok(MAP);
+        assert_eq!(
+            grid.step_cost(Pos::new(0, 0), Pos::new(1, 0)),
+            Cost::new(1.0)
+        );
+        assert_eq!(
+            grid.step_cost(Pos::new(0, 0), Pos::new(0, 1)),
+            Cost::new(1.0)
+        );
+        let diagonal = grid.step_cost(Pos::new(0, 0), Pos::new(1, 1)).value();
+        assert!((diagonal - std::f64::consts::SQRT_2).abs() < 1e-9);
     }
 
     #[test]

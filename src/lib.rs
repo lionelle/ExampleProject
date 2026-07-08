@@ -7,3 +7,4 @@
 pub mod cost;
 pub mod grid;
 pub mod heuristic;
+pub mod search;
