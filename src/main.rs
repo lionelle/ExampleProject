@@ -1,23 +1,12 @@
-//! Example application entry point.
+//! Command-line entry point for the A\* search simulator.
 
-/// Program entry point.
+use example_project::grid::Grid;
+
+/// Parse and print a small built-in demo grid.
 fn main() {
-    println!("{}", greeting("world"));
-}
-
-/// Build a greeting for the given name.
-fn greeting(name: &str) -> String {
-    format!("Hello, {name}!")
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-    use super::*;
-
-    /// `greeting` includes the provided name.
-    #[test]
-    fn greeting_contains_name() {
-        assert_eq!(greeting("world"), "Hello, world!");
+    let text = "S....\n.###.\n...#.\n.#.#.\n.#..G\n";
+    match Grid::parse(text) {
+        Ok(grid) => print!("{grid}"),
+        Err(err) => eprintln!("map error: {err}"),
     }
 }
