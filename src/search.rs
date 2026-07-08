@@ -6,6 +6,7 @@
 
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::fmt;
 
 use crate::cost::Cost;
 use crate::grid::{Connectivity, Grid, Pos};
@@ -31,6 +32,17 @@ impl Algorithm {
             Self::Greedy => h,
             Self::Dijkstra => g,
         }
+    }
+}
+
+impl fmt::Display for Algorithm {
+    /// The human-readable name of the algorithm.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::AStar => "A*",
+            Self::Greedy => "greedy",
+            Self::Dijkstra => "Dijkstra",
+        })
     }
 }
 
@@ -438,6 +450,13 @@ mod tests {
         let a = search(&grid, &Zero, Algorithm::AStar, Connectivity::Four);
         let d = search(&grid, &Zero, Algorithm::Dijkstra, Connectivity::Four);
         assert_eq!(a.stats.path_cost, d.stats.path_cost);
+    }
+
+    #[test]
+    fn algorithm_display_names() {
+        assert_eq!(Algorithm::AStar.to_string(), "A*");
+        assert_eq!(Algorithm::Greedy.to_string(), "greedy");
+        assert_eq!(Algorithm::Dijkstra.to_string(), "Dijkstra");
     }
 
     #[test]

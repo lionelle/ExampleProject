@@ -8,6 +8,9 @@ struct Example {
     map: &'static str,
 }
 
+/// The name of the example used when no map source is specified.
+pub const DEFAULT: &str = "open";
+
 /// All built-in example maps. Each is a solvable 5x5 grid.
 const EXAMPLES: &[Example] = &[
     Example {
@@ -79,5 +82,10 @@ mod tests {
     #[test]
     fn unknown_example_is_none() {
         assert!(example("does-not-exist").is_none());
+    }
+
+    #[test]
+    fn default_names_a_real_example() {
+        assert!(example(DEFAULT).is_some());
     }
 }

@@ -1,12 +1,21 @@
 //! Command-line entry point for the A\* search simulator.
 
-use example_project::grid::Grid;
+use std::io::{self, Write};
+use std::process::ExitCode;
 
-/// Parse and print a small built-in demo grid.
-fn main() {
-    let text = "S....\n.###.\n...#.\n.#.#.\n.#..G\n";
-    match Grid::parse(text) {
-        Ok(grid) => print!("{grid}"),
-        Err(err) => eprintln!("map error: {err}"),
+use clap::Parser;
+use example_project::cli::{Cli, run};
+
+/// Parse arguments, run the simulator, and report any error to stderr.
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+    let stdout = io::stdout();
+    let mut out = stdout.lock();
+    match run(&cli, &mut out) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            let _ = writeln!(io::stderr(), "error: {err}");
+            ExitCode::FAILURE
+        }
     }
 }

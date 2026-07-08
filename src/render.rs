@@ -107,7 +107,8 @@ struct Overlay<'a> {
 /// Animate the search by replaying its trace, pausing `delay` between frames.
 ///
 /// Clears the screen and flushes before each pause so the animation is visible
-/// even through a buffered writer.
+/// even through a buffered writer. When `color` is false, ANSI colour codes are
+/// omitted (for non-terminal output).
 ///
 /// # Errors
 /// Propagates any [`io::Error`] from writing to `out`.
@@ -116,6 +117,7 @@ pub fn animate(
     outcome: &SearchOutcome,
     out: &mut dyn Write,
     delay: Duration,
+    color: bool,
 ) -> io::Result<()> {
     let mut visited = HashSet::new();
     let mut frontier = HashSet::new();
@@ -123,11 +125,11 @@ pub fn animate(
         visited.insert(step.expanded);
         frontier.remove(&step.expanded);
         frontier.extend(step.enqueued.iter().copied());
-        draw_step(grid, step.expanded, &frontier, &visited, out)?;
+        draw_step(grid, step.expanded, &frontier, &visited, out, color)?;
         pause(delay);
     }
     out.write_all(CLEAR)?;
-    render_solution(grid, outcome, out)?;
+    render_solution(grid, outcome, out, color)?;
     out.flush()
 }
 
@@ -142,6 +144,7 @@ pub fn render_solution(
     grid: &Grid,
     outcome: &SearchOutcome,
     out: &mut dyn Write,
+    color: bool,
 ) -> io::Result<()> {
     let empty = HashSet::new();
     let overlay = Overlay {
@@ -150,7 +153,7 @@ pub fn render_solution(
         visited: &empty,
         path: outcome.path.as_deref().unwrap_or(&[]),
     };
-    render_frame(grid, &overlay, out)
+    render_frame(grid, &overlay, out, color)
 }
 
 /// Write a one-line-per-metric summary of the search.
@@ -180,6 +183,7 @@ fn draw_step(
     frontier: &HashSet<Pos>,
     visited: &HashSet<Pos>,
     out: &mut dyn Write,
+    color: bool,
 ) -> io::Result<()> {
     out.write_all(CLEAR)?;
     let overlay = Overlay {
@@ -188,7 +192,7 @@ fn draw_step(
         visited,
         path: &[],
     };
-    render_frame(grid, &overlay, out)?;
+    render_frame(grid, &overlay, out, color)?;
     out.flush()
 }
 
@@ -196,21 +200,38 @@ fn draw_step(
 ///
 /// # Errors
 /// Propagates any [`io::Error`] from writing to `out`.
-fn render_frame(grid: &Grid, overlay: &Overlay, out: &mut dyn Write) -> io::Result<()> {
+fn render_frame(
+    grid: &Grid,
+    overlay: &Overlay,
+    out: &mut dyn Write,
+    color: bool,
+) -> io::Result<()> {
     for y in 0..grid.height() {
-        render_row(grid, overlay, y, out)?;
+        render_row(grid, overlay, y, out, color)?;
     }
     Ok(())
 }
 
-/// Draw row `y` of the grid, one styled glyph per column.
+/// Draw row `y` of the grid, one styled glyph per column. Colour escapes are
+/// emitted only when `color` is true.
 ///
 /// # Errors
 /// Propagates any [`io::Error`] from writing to `out`.
-fn render_row(grid: &Grid, overlay: &Overlay, y: usize, out: &mut dyn Write) -> io::Result<()> {
+fn render_row(
+    grid: &Grid,
+    overlay: &Overlay,
+    y: usize,
+    out: &mut dyn Write,
+    color: bool,
+) -> io::Result<()> {
     for x in 0..grid.width() {
         let layer = overlay_cell(grid, overlay, Pos::new(x, y));
-        write!(out, "{}{}{RESET}", layer.color(), layer.glyph())?;
+        let (pre, post) = if color {
+            (layer.color(), RESET)
+        } else {
+            ("", "")
+        };
+        write!(out, "{pre}{}{post}", layer.glyph())?;
     }
     out.write_all(b"\n")
 }
@@ -334,17 +355,34 @@ mod tests {
             path: &[],
         };
         let mut buf = Vec::new();
-        render_frame(&grid, &overlay, &mut buf).expect("write ok");
+        render_frame(&grid, &overlay, &mut buf, true).expect("write ok");
         let frame = String::from_utf8(buf).expect("utf-8");
         assert_eq!(frame.matches('\n').count(), grid.height());
         assert!(frame.contains(START) && frame.contains(GOAL) && frame.contains(WALL));
     }
 
     #[test]
+    fn render_frame_without_color_omits_escapes() {
+        let (grid, _) = solved();
+        let empty = HashSet::new();
+        let overlay = Overlay {
+            current: None,
+            frontier: &empty,
+            visited: &empty,
+            path: &[],
+        };
+        let mut buf = Vec::new();
+        render_frame(&grid, &overlay, &mut buf, false).expect("write ok");
+        let frame = String::from_utf8(buf).expect("utf-8");
+        assert!(!frame.contains('\x1b'), "no ANSI escapes without colour");
+        assert!(frame.contains(START) && frame.contains(GOAL));
+    }
+
+    #[test]
     fn animate_emits_frames_and_final_path() {
         let (grid, outcome) = solved();
         let mut buf = Vec::new();
-        animate(&grid, &outcome, &mut buf, Duration::ZERO).expect("write ok");
+        animate(&grid, &outcome, &mut buf, Duration::ZERO, true).expect("write ok");
         let out = String::from_utf8(buf).expect("utf-8");
         assert!(out.contains(CURRENT), "animation shows the expanding cell");
         assert!(out.contains(PATH), "final frame shows the path");
@@ -355,7 +393,7 @@ mod tests {
         // Once expanded, a cell must leave the frontier and render as VISITED.
         let (grid, outcome) = solved();
         let mut buf = Vec::new();
-        animate(&grid, &outcome, &mut buf, Duration::ZERO).expect("write ok");
+        animate(&grid, &outcome, &mut buf, Duration::ZERO, true).expect("write ok");
         assert!(
             String::from_utf8(buf).expect("utf-8").contains(VISITED),
             "expanded cells should render as visited"
@@ -367,7 +405,7 @@ mod tests {
         // Exercises the pause() sleep branch with a negligible delay.
         let (grid, outcome) = solved();
         let mut buf = Vec::new();
-        animate(&grid, &outcome, &mut buf, Duration::from_nanos(1)).expect("write ok");
+        animate(&grid, &outcome, &mut buf, Duration::from_nanos(1), true).expect("write ok");
         assert!(!buf.is_empty());
     }
 
