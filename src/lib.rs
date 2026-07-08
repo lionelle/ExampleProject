@@ -5,6 +5,8 @@
 //! command line.
 
 pub mod cost;
+pub mod examples;
 pub mod grid;
 pub mod heuristic;
+pub mod mapgen;
 pub mod search;

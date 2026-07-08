@@ -6,13 +6,13 @@ use std::fmt::Write as _;
 use crate::cost::Cost;
 
 /// Glyph for an open, walkable cell.
-const OPEN: char = '.';
+pub(crate) const OPEN: char = '.';
 /// Glyph for a wall cell.
-const WALL: char = '#';
+pub(crate) const WALL: char = '#';
 /// Glyph marking the start position.
-const START: char = 'S';
+pub(crate) const START: char = 'S';
 /// Glyph marking the goal position.
-const GOAL: char = 'G';
+pub(crate) const GOAL: char = 'G';
 
 /// The cost of one orthogonal (N/S/E/W) step.
 const ORTHOGONAL_STEP: f64 = 1.0;
