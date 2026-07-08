@@ -1,23 +1,21 @@
-//! Example application entry point.
+//! Command-line entry point for the A\* search simulator.
 
-/// Program entry point.
-fn main() {
-    println!("{}", greeting("world"));
-}
+use std::io::{self, Write};
+use std::process::ExitCode;
 
-/// Build a greeting for the given name.
-fn greeting(name: &str) -> String {
-    format!("Hello, {name}!")
-}
+use clap::Parser;
+use example_project::cli::{Cli, run};
 
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-    use super::*;
-
-    /// `greeting` includes the provided name.
-    #[test]
-    fn greeting_contains_name() {
-        assert_eq!(greeting("world"), "Hello, world!");
+/// Parse arguments, run the simulator, and report any error to stderr.
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+    let stdout = io::stdout();
+    let mut out = stdout.lock();
+    match run(&cli, &mut out) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            let _ = writeln!(io::stderr(), "error: {err}");
+            ExitCode::FAILURE
+        }
     }
 }
