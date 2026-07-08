@@ -4,4 +4,6 @@
 //! search strategies (A\*, greedy best-first) so they can be compared on the
 //! command line.
 
+pub mod cost;
 pub mod grid;
+pub mod heuristic;
