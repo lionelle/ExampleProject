@@ -1,0 +1,3 @@
+# Keep functions short and simple. Tune to taste.
+too-many-lines-threshold = 20
+cognitive-complexity-threshold = 15

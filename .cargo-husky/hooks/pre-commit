@@ -1,0 +1,27 @@
+#!/bin/sh
+# cargo-husky pre-commit hook: auto-format + clippy quality gate.
+set -eu
+
+# Collect staged Rust files (added/copied/modified/renamed).
+staged_rs=$(git diff --cached --name-only --diff-filter=ACMR -- '*.rs')
+
+if [ -n "$staged_rs" ]; then
+    # Guard: refuse to auto-format files that are only partially staged,
+    # otherwise `git add` below would capture their unstaged edits too.
+    unstaged=$(git diff --name-only -- '*.rs')
+    conflict=$(printf '%s\n' "$staged_rs" | grep -Fxf <(printf '%s\n' "$unstaged") || true)
+    if [ -n "$conflict" ]; then
+        echo "pre-commit: these staged .rs files also have UNSTAGED changes:"
+        printf '  %s\n' $conflict
+        echo "Stage the whole file (git add) or run 'cargo fmt' manually, then re-commit."
+        exit 1
+    fi
+
+    echo "pre-commit: cargo fmt..."
+    cargo fmt
+    # Re-stage the (now formatted) files that were originally staged.
+    printf '%s\n' $staged_rs | xargs git add
+fi
+
+echo "pre-commit: cargo clippy..."
+cargo clippy --all-targets --all-features -- -D warnings
