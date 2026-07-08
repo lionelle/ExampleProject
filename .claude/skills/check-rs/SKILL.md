@@ -64,11 +64,15 @@ cargo llvm-cov --version || { rustup component add llvm-tools-preview && cargo i
 ```
 Capture the current coverage to hand to the test agent:
 ```
-cargo llvm-cov --all-features --summary-only
+cargo llvm-cov --all-features --ignore-filename-regex 'src/main\.rs' --summary-only
 ```
-Also capture a per-function/line breakdown (e.g. `cargo llvm-cov --all-features --text` or `--json`) and
-save the report text — you will pass it to the test-coverage agent in Phase 3 and reuse the starting % in
-the summary.
+Also capture a per-function/line breakdown (e.g. `cargo llvm-cov --all-features --ignore-filename-regex
+'src/main\.rs' --text` or `--json`) and save the report text — you will pass it to the test-coverage agent
+in Phase 3 and reuse the starting % in the summary.
+
+The `--ignore-filename-regex 'src/main\.rs'` excludes the binary entrypoint (`fn main`), which
+`cargo test` never enters, from the function-coverage gate. Keep all real logic in `src/lib.rs` (or other
+modules) so it stays measured; `src/main.rs` must be a thin one-function shell.
 
 ## Phase 3: Launch the four review agents in parallel
 
@@ -110,7 +114,7 @@ Run in sequence — all must pass cleanly:
 cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
-cargo llvm-cov --all-features --fail-under-functions 100 --fail-under-lines 90
+cargo llvm-cov --all-features --ignore-filename-regex 'src/main\.rs' --fail-under-functions 100 --fail-under-lines 90
 ```
 If any fail, fix and re-run before declaring done. (Adjust the two `--fail-under-*` values only with the
 user's agreement — they encode the project's coverage bar.)
