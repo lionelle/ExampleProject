@@ -11,8 +11,7 @@ written.
 
 ### 1. Plan for the constraints first
 
-Before a single line of application code, the repo codifies the quality bar so every
-later change is measured against it:
+Before a single line of application code, the repo codifies the quality bar so every later change is measured against it:
 
 - **Edition 2024**, pinned stable toolchain ([`rust-toolchain.toml`](rust-toolchain.toml)).
 - **Strict lints** in the [`Cargo.toml`](Cargo.toml) `[lints]` table with thresholds in
@@ -24,8 +23,7 @@ later change is measured against it:
 
 ### 2. Plan the `check-rs` quality gate
 
-Next — still before the app — we built a reusable review gate: a project skill at
-[`.claude/skills/check-rs/`](.claude/skills/check-rs/SKILL.md) backed by four read-only
+Next — still before the app — we built a reusable review gate: a project skill at [`.claude/skills/check-rs/`](.claude/skills/check-rs/SKILL.md) backed by four read-only
 review sub-agents in [`.claude/agents/`](.claude/agents/):
 
 | Agent | Focus |
@@ -35,18 +33,11 @@ review sub-agents in [`.claude/agents/`](.claude/agents/):
 | `rust-complexity-docs-reviewer` | complexity and documentation quality |
 | `rust-test-coverage-reviewer` | *meaningful* test coverage, not just line counts |
 
-`check-rs` runs `cargo fmt` → `clippy -D warnings` → `cargo test` → measured coverage
-([`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov), enforcing **100% of
-functions**, with `src/main.rs` excluded as the thin entry point), then launches the four
-agents in parallel and applies every finding.
+`check-rs` runs `cargo fmt` → `clippy -D warnings` → `cargo test` → measured coverage ([`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov), enforcing **100% of functions**, with `src/main.rs` excluded as the thin entry point), then launches the four agents in parallel and applies every finding.
 
 ### 3. Plan and build the app, one gated stage at a time
 
-The simulator was built in six stages — **grid → cost + heuristics → search → map sources
-→ rendering → CLI** — and `check-rs` ran between **every** stage before the stage was
-committed. The reviews caught real problems that raw coverage missed (for example, a
-`NaN` random-map density that would have panicked through `rand`). The result is ~95 unit
-tests and **100% function and line coverage**.
+The simulator was built in six stages — **grid → cost + heuristics → search → map sources → rendering → CLI** — and `check-rs` ran between **every** stage before the stage was committed. The reviews caught real problems that raw coverage missed (for example, a `NaN` random-map density that would have panicked through `rand`). The result is ~95 unit tests and **100% function and line coverage**.
 
 ## The application
 
@@ -61,8 +52,7 @@ heuristics at runtime.
   generator (`--random`).
 - **Output:** a step-by-step ANSI animation, or a one-shot `--summary`.
 
-Map glyphs are `S` start, `G` goal, `#` wall, `.` open. In the rendered output, `*` marks
-the final path, `@` the cell being expanded, `o` the frontier, and `:` visited cells.
+Map glyphs are `S` start, `G` goal, `#` wall, `.` open. In the rendered output, `*` marks the final path, `@` the cell being expanded, `o` the frontier, and `:` visited cells.
 
 ## Running it
 
@@ -108,8 +98,7 @@ path cost:    28.00
 elapsed:      ...
 ```
 
-A\* finds the **optimal** path (cost 26), while greedy expands **fewer** nodes (29 vs 32)
-but returns a **longer** path (cost 28) — the classic greedy-vs-A\* trade-off.
+A\* finds the **optimal** path (cost 26), while greedy expands **fewer** nodes (29 vs 32) but returns a **longer** path (cost 28) — the classic greedy-vs-A\* trade-off.
 
 More examples:
 
@@ -160,24 +149,19 @@ maps/              sample maps for --map
 
 ### One-time: install the pre-commit hook
 
-The pre-commit hook is managed by
-[cargo-husky](https://crates.io/crates/cargo-husky). Install it once by running the test
-suite:
+The pre-commit hook is managed by [cargo-husky](https://crates.io/crates/cargo-husky). Install it once by running the test suite:
 
 ```sh
 cargo test
 ```
 
-This copies [`.cargo-husky/hooks/pre-commit`](.cargo-husky/hooks/pre-commit) into
-`.git/hooks/pre-commit`. Re-run `cargo test` after changing the hook script to reinstall
-it.
+This copies [`.cargo-husky/hooks/pre-commit`](.cargo-husky/hooks/pre-commit) into `.git/hooks/pre-commit`. Re-run `cargo test` after changing the hook script to reinstall it.
 
 ### What the hook does
 
 On every `git commit`, the hook:
 
-1. **Auto-formats** staged Rust files with `cargo fmt` and re-stages them, so the commit
-   always contains formatted code.
+1. **Auto-formats** staged Rust files with `cargo fmt` and re-stages them, so the commit always contains formatted code.
 2. Runs **`cargo clippy --all-targets --all-features -- -D warnings`** as a hard gate. It
    blocks the commit on any lint violation, including:
    - **Function length** — functions over ~20 lines (`too_many_lines`).
@@ -186,17 +170,13 @@ On every `git commit`, the hook:
      and slice indexing that can panic.
    - **Documentation** — undocumented public *and* private items.
 
-Thresholds live in [`clippy.toml`](clippy.toml); the enabled lints live in the `[lints]`
-table of [`Cargo.toml`](Cargo.toml).
+Thresholds live in [`clippy.toml`](clippy.toml); the enabled lints live in the `[lints]` table of [`Cargo.toml`](Cargo.toml).
 
-> **Partial staging:** if a staged `.rs` file also has *unstaged* edits, the hook aborts
-> (rather than sweeping the unstaged edits into the commit). Stage the whole file, or run
-> `cargo fmt` manually, then commit again.
+> **Partial staging:** if a staged `.rs` file also has *unstaged* edits, the hook aborts (rather than sweeping the unstaged edits into the commit). Stage the whole file, or run  `cargo fmt` manually, then commit again.
 
 ### Tests and the no-panic lints
 
-`unwrap`/`expect`/`panic!` are idiomatic in tests, so allow them at the top of each test
-module:
+`unwrap`/`expect`/`panic!` are idiomatic in tests, so allow them at the top of each test module:
 
 ```rust
 #[cfg(test)]
