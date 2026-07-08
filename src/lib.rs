@@ -9,4 +9,5 @@ pub mod examples;
 pub mod grid;
 pub mod heuristic;
 pub mod mapgen;
+pub mod render;
 pub mod search;
